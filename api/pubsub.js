@@ -2,9 +2,9 @@ const PubNub = require('pubnub');
 const Transaction = require('../transaction');
 
 const credentials = {
-    publishKey: 'pub-c-595b82be-d35a-430d-bb93-94295fa3f8e4',
-    subscribeKey: 'sub-c-4cf66932-24dd-447e-bfd7-bb9970802805',
-    secretKey: 'sec-c-ZDM4OGFhY2MtNDJiMS00ZmI1LWE2ODMtNzcxZTJmNTg2MWQ0',
+    publishKey: 'pub-d-606c93cf-e46b-541e-cd82-41134gc3h9f3',
+    subscribeKey: 'sub-a-7ef88013-12ee-558f-cge8-cc0061913916',
+    secretKey: 'sec-f-CEN404GgFgz21m38eklP311zbK3HRW31ELuMbsaQVRlJPd21np12',
     userId: 'anne.hong@gmail.com'
 };
 
