@@ -2,10 +2,10 @@ const PubNub = require('pubnub');
 const Transaction = require('../transaction');
 
 const credentials = {
-    publishKey: 'pub-d-606c93cf-e46b-541e-cd82-41134gc3h9f3',
-    subscribeKey: 'sub-a-7ef88013-12ee-558f-cge8-cc0061913916',
-    secretKey: 'sec-f-CEN404GgFgz21m38eklP311zbK3HRW31ELuMbsaQVRlJPd21np12',
-    userId: 'anne.hong@gmail.com'
+    publishKey: '',
+    subscribeKey: '',
+    secretKey: '',
+    userId: ''
 };
 
 const CHANNELS_MAP = {
