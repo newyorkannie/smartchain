@@ -1,5 +1,7 @@
 const { GENESIS_DATA, MINE_RATE } = require('../config');
 const { keccakHash } = require('../util');
+const Transaction = require('../transaction');
+const Trie = require('../store/trie');
 
 const HASH_LENGTH = 64;
 const MAX_HASH_VALUE = parseInt('f'.repeat(HASH_LENGTH), 16);
@@ -39,8 +41,18 @@ class Block {
         return difficulty + 1;
     }
 
-    static mineBlock({ lastBlock, beneficiary, transactionSeries }) {
+    static mineBlock({ 
+        lastBlock, 
+        beneficiary, 
+        transactionSeries,
+        stateRoot
+    }) {
         const target = Block.calculateBlockTargetHash({ lastBlock });
+        const miningRewardTransaction = Transaction.createTransaction({
+            beneficiary
+        });
+        transactionSeries.push(miningRewardTransaction);
+        const transactionsTrie = Trie.buildTrie({ items: transactionSeries }); //helper function to build a trie
         let timestamp, truncatedBlockHeaders, header, nonce, underTargetHash;
 
         do {
@@ -51,11 +63,8 @@ class Block {
             difficulty: Block.adjustDifficulty({ lastBlock, timestamp }),
             number: lastBlock.blockHeaders.number + 1,
             timestamp,
-            /**
-             * NOTE: the `transactionRoot` will be refactored once Tries are 
-             * implemented
-             */
-            transactionsRoot: keccakHash(transactionSeries)
+            transactionsRoot: transactionSeries.rootHash,
+            stateRoot
          };
          header = keccakHash(truncatedBlockHeaders);
          nonce = Math.floor(Math.random() * MAX_NONCE_VALUE);
@@ -76,7 +85,7 @@ class Block {
         return new Block(GENESIS_DATA);
     }
 
-    static validateBlock({ lastBlock, block }) {
+    static validateBlock({ lastBlock, block, state }) {
         return new Promise((resolve, reject) => {
 
             //checks if the presented block hash and the genesis block has are equal
@@ -99,6 +108,20 @@ class Block {
                 return reject(new Error('The difficulty must only adjust by 1'));
             }
 
+            const rebuiltTransactionsTrie = Trie.buildTrie({
+                items: block.transactionSeries
+            });
+        
+            // //this caused an error, Lecture 51: The Transactions Trie
+            // if (rebuiltTransactionsTrie.rootHash !== block.blockHeaders.transactionsRoot) {
+            //     return reject(
+            //       new Error(
+            //         `The rebuilt transactions root does not match the block's ` +
+            //         `transactions root: ${block.blockHeaders.transactionsRoot}`
+            //       )
+            //     );
+            // }
+
             const target = Block.calculateBlockTargetHash({ lastBlock });
             const { blockHeaders } = block;
             const { nonce } = blockHeaders;
@@ -112,9 +135,18 @@ class Block {
                         'The block does not meet the proof of work requirement'
                 ));
             }
-            
-            return resolve();
+
+            Transaction.validateTransactionSeries({
+                state, transactionSeries: block.transactionSeries
+            }).then(resolve)  // replace '}).then(() => resolve())' with resolve keyword
+              .catch(reject);  // replace '.catch(error => reject(error));' with reject
         });
+    }
+
+    static runBlock({ block, state }) {
+        for (let transaction of block.transactionSeries) {
+          Transaction.runTransaction({ transaction, state });
+        }
     }
 }
 

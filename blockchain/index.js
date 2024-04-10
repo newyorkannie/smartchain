@@ -1,17 +1,22 @@
 const Block = require('./block');
 
 class Blockchain {
-    constructor() {
+    constructor({ state }) {
         this.chain = [Block.genesis()];
+        this.state = state;
     }
 
     addBlock({ block, transactionQueue }) {
         return new Promise((resolve, reject) => {
             Block.validateBlock({
                 lastBlock: this.chain[this.chain.length-1],
-                block
+                block,
+                state: this.state
             }).then(() => {
                 this.chain.push(block);
+
+                //Call
+                Block.runBlock({ block, state: this.state });
 
                 transactionQueue.clearBlockTransactions({
                     transactionSeries: block.transactionSeries
@@ -31,7 +36,8 @@ class Blockchain {
                 const lastBlock = lastBlockIndex >= 0 ? chain[i-1] : null;
 
                 try {
-                    await Block.validateBlock({ lastBlock, block });
+                    await Block.validateBlock({ lastBlock, block, state: this.state });
+                    Block.runBlock({ block, state: this.state });
                 } catch (error) {
                     return reject(error);
                 }
