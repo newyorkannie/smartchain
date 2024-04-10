@@ -5,13 +5,15 @@ const Account = require('../account');
 const Blockchain = require('../blockchain');
 const Block = require('../blockchain/block');
 const PubSub = require('./pubsub');
+const State = require('../store/state');
 const Transaction = require('../transaction');
 const TransactionQueue = require('../transaction/transaction-queue');
 
 const app = express();
 app.use(bodyParser.json());
 
-const blockchain = new Blockchain();
+const state = new State();
+const blockchain = new Blockchain({ state });
 const transactionQueue = new TransactionQueue();
 const pubsub = new PubSub({ blockchain, transactionQueue });
 const account = new Account();
@@ -38,7 +40,8 @@ app.get('/blockchain/mine', (req, res, next) => {
     const block = Block.mineBlock({
         lastBlock,
         beneficiary: account.address,
-        transactionSeries: transactionQueue.getTransactionSeries()
+        transactionSeries: transactionQueue.getTransactionSeries(),
+        stateRoot: state.getStateRoot()
     });
 
     //this method adds the newly mined block to the blockchain
@@ -53,20 +56,35 @@ app.get('/blockchain/mine', (req, res, next) => {
 
 app.post('/account/transact', (req, res, next) => {
     //request body data and destructure it to take TO field
-    const {to, value} = req.body;
+    const { code, gasLimit, to, value } = req.body;
     //instantiate a new tranaction
     const transaction = Transaction.createTransaction({
         //these are objects -> account, to, value
         //use ! and ternary to write this conditional
         //if the to-field is undefined, 
         //instantiate a new account otherwise set it to account
-        account: !to ? new Account() : account, 
-        to , 
+        account: !to ? new Account({ code }) : account,
+        gasLimit,
+        to, 
         value
     });
+    
     pubsub.broadcastTransaction(transaction);
 
     res.json({ transaction });   //respond
+});
+
+//new endpoint to get balance
+//use the Account class to calculate the balance
+app.get('/account/balance', (req, res, next) => {
+    const { address } = req.query
+
+    const balance = Account.calculateBalance({ //implement this later
+        address: address || account.address,
+        state 
+    });
+
+    res.json({ balance });
 });
 
 app.use((err, req, res, next) => {
